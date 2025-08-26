@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "A GitHub App to welcome new contributors.",
   "main": "index.js",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
     "@octokit/app": "^15.1.0",
     "dotenv": "^16.3.1"
