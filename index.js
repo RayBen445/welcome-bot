@@ -1,8 +1,7 @@
-// index.js (with Base64 decoding)
+// index.js (Simplified for Vercel)
 
-require("dotenv").config();
-const express = "express";
-const { App, createNodeMiddleware } = require("@octokit/app");
+const { App } = require("@octokit/app");
+const { createNodeMiddleware } = require("@octokit/app");
 
 // Decode the Base64 private key
 const privateKey = Buffer.from(process.env.PRIVATE_KEY, "base64").toString("utf8");
@@ -10,7 +9,7 @@ const privateKey = Buffer.from(process.env.PRIVATE_KEY, "base64").toString("utf8
 // Initialize the GitHub App
 const app = new App({
   appId: process.env.APP_ID,
-  privateKey: privateKey, // Use the decoded key
+  privateKey: privateKey,
   webhooks: {
     secret: process.env.WEBHOOK_SECRET,
   },
@@ -19,7 +18,7 @@ const app = new App({
 // Webhook Event Handler
 app.webhooks.on("issues.opened", async ({ octokit, payload }) => {
   console.log(`Received an issue opened event for #${payload.issue.number}`);
-
+  
   const issueComment = octokit.rest.issues.createComment({
     owner: payload.repository.owner.login,
     repo: payload.repository.name,
@@ -39,8 +38,5 @@ app.webhooks.on("issues.opened", async ({ octokit, payload }) => {
   }
 });
 
-// Server Setup
-const server = express();
-server.use(createNodeMiddleware(app));
-
-module.exports = server;
+// This exports the webhook handler for Vercel to use
+module.exports = createNodeMiddleware(app);
