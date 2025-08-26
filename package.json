@@ -1,0 +1,14 @@
+{
+  "name": "professors-welcome-bot",
+  "version": "1.0.0",
+  "description": "A GitHub App to welcome new contributors.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@octokit/app": "^13.1.9",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
+  }
+}
