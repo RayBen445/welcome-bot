@@ -1,4 +1,4 @@
-// index.js (Simplified for Vercel)
+// index.js (Final Version for Vercel)
 
 const { App } = require("@octokit/app");
 const { createNodeMiddleware } = require("@octokit/app");
