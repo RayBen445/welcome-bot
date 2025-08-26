@@ -1,7 +1,6 @@
-// index.js (Final Version for Vercel)
+// index.js (Using ES Module Imports)
 
-const { App } = require("@octokit/app");
-const { createNodeMiddleware } = require("@octokit/app");
+import { App, createNodeMiddleware } from "@octokit/app";
 
 // Decode the Base64 private key
 const privateKey = Buffer.from(process.env.PRIVATE_KEY, "base64").toString("utf8");
@@ -39,4 +38,4 @@ app.webhooks.on("issues.opened", async ({ octokit, payload }) => {
 });
 
 // This exports the webhook handler for Vercel to use
-module.exports = createNodeMiddleware(app);
+export default createNodeMiddleware(app);
