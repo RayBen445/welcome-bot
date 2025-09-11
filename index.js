@@ -1,6 +1,6 @@
 // index.js (Using ES Module Imports)
 
-import { App, createNodeMiddleware } from "@octokit/app";
+import { App } from "@octokit/app";
 
 // Decode the Base64 private key
 const privateKey = Buffer.from(process.env.PRIVATE_KEY, "base64").toString("utf8");
@@ -264,5 +264,113 @@ Let's keep up the momentum toward our next goals! 🚀`,
   }
 });
 
+// Custom webhook handler that doesn't require OAuth
+const processWebhook = async (payload, signature, eventType, deliveryId, res) => {
+  try {
+    await app.webhooks.verifyAndReceive({
+      id: deliveryId,
+      name: eventType,
+      signature: signature,
+      payload: payload
+    });
+    
+    res.status(200).json({ 
+      message: 'Webhook processed successfully',
+      event: eventType,
+      deliveryId: deliveryId
+    });
+  } catch (error) {
+    console.error('Webhook verification/processing error:', error);
+    if (error.message.includes('signature')) {
+      res.status(401).json({ 
+        error: 'Unauthorized',
+        message: 'Invalid webhook signature'
+      });
+    } else {
+      res.status(500).json({ 
+        error: 'Internal server error',
+        message: 'Failed to process webhook event'
+      });
+    }
+  }
+};
+
+const webhookHandler = async (req, res) => {
+  // Handle GET requests with a friendly message
+  if (req.method === 'GET') {
+    res.status(200).json({
+      message: "Welcome Bot is running! 🤖",
+      description: "This is a GitHub webhook endpoint. To use this bot, configure it as a webhook URL in your GitHub repository settings.",
+      endpoints: {
+        webhook: "POST requests to this URL"
+      },
+      events: [
+        "issues.opened",
+        "pull_request.opened", 
+        "repository.created",
+        "star.created",
+        "fork",
+        "watch.started",
+        "release.published",
+        "issues.assigned",
+        "member.added",
+        "milestone.closed"
+      ]
+    });
+    return;
+  }
+
+  // Handle POST requests (webhooks)
+  if (req.method === 'POST') {
+    try {
+      // Get the raw body and signature for webhook verification
+      const signature = req.headers['x-hub-signature-256'] || req.headers['x-hub-signature'];
+      const eventType = req.headers['x-github-event'];
+      const deliveryId = req.headers['x-github-delivery'];
+      
+      if (!signature || !eventType) {
+        res.status(400).json({ 
+          error: 'Bad Request',
+          message: 'Missing required webhook headers'
+        });
+        return;
+      }
+
+      // For Vercel functions, we need to handle the body differently
+      let payload;
+      if (typeof req.body === 'string') {
+        payload = req.body;
+      } else if (req.body && typeof req.body === 'object') {
+        payload = JSON.stringify(req.body);
+      } else {
+        // If body is not available, try to read from request
+        payload = '';
+        req.on('data', chunk => {
+          payload += chunk.toString();
+        });
+        req.on('end', async () => {
+          await processWebhook(payload, signature, eventType, deliveryId, res);
+        });
+        return;
+      }
+      
+      await processWebhook(payload, signature, eventType, deliveryId, res);
+    } catch (error) {
+      console.error('Webhook processing error:', error);
+      res.status(500).json({ 
+        error: 'Internal server error',
+        message: 'Failed to process webhook'
+      });
+    }
+    return;
+  }
+
+  // Handle other HTTP methods
+  res.status(405).json({ 
+    error: 'Method not allowed',
+    message: 'Only GET and POST methods are supported'
+  });
+};
+
 // This exports the webhook handler for Vercel to use
-export default createNodeMiddleware(app);
+export default webhookHandler;
