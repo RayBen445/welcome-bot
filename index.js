@@ -1,6 +1,6 @@
 // index.js (Using ES Module Imports)
 
-import { App, createNodeMiddleware } from "@octokit/app";
+import { App } from "@octokit/app";
 
 // Validate environment variables
 if (!process.env.APP_ID || !process.env.PRIVATE_KEY || !process.env.WEBHOOK_SECRET) {
