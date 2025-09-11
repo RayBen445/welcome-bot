@@ -2,8 +2,13 @@
 
 import { App } from "@octokit/app";
 
+// Validate environment variables
+if (!process.env.APP_ID || !process.env.PRIVATE_KEY || !process.env.WEBHOOK_SECRET) {
+  console.error("Missing required environment variables: APP_ID, PRIVATE_KEY, WEBHOOK_SECRET");
+}
+
 // Decode the Base64 private key
-const privateKey = Buffer.from(process.env.PRIVATE_KEY, "base64").toString("utf8");
+const privateKey = process.env.PRIVATE_KEY ? Buffer.from(process.env.PRIVATE_KEY, "base64").toString("utf8") : "";
 
 // Initialize the GitHub App
 const app = new App({
@@ -264,145 +269,54 @@ Let's keep up the momentum toward our next goals! 🚀`,
   }
 });
 
-// Custom webhook handler that doesn't require OAuth
-const processWebhook = async (payload, signature, eventType, deliveryId, res) => {
+// Create a custom webhook handler that doesn't require OAuth
+async function handleWebhook(req, res) {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
   try {
+    const signature = req.headers['x-hub-signature-256'];
+    const deliveryId = req.headers['x-github-delivery'];
+    const eventName = req.headers['x-github-event'];
+    
+    // Get raw body - Vercel provides it as body for webhooks
+    let payload;
+    if (typeof req.body === 'string') {
+      payload = req.body;
+    } else {
+      payload = JSON.stringify(req.body);
+    }
+    
+    // Let the app handle the webhook
     await app.webhooks.verifyAndReceive({
       id: deliveryId,
-      name: eventType,
+      name: eventName,
       signature: signature,
       payload: payload
     });
-    
-    sendJsonResponse(res, 200, { 
-      message: 'Webhook processed successfully',
-      event: eventType,
-      deliveryId: deliveryId
-    });
+
+    res.status(200).json({ success: true });
   } catch (error) {
-    console.error('Webhook verification/processing error:', error);
-    if (error.message.includes('signature')) {
-      sendJsonResponse(res, 401, { 
-        error: 'Unauthorized',
-        message: 'Invalid webhook signature'
-      });
-    } else {
-      sendJsonResponse(res, 500, { 
-        error: 'Internal server error',
-        message: 'Failed to process webhook event'
-      });
-    }
+    console.error('Webhook error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
-};
+}
 
-// Utility function to send JSON responses (compatible with both Express and Node.js)
-const sendJsonResponse = (res, statusCode, data) => {
-  // Check if it's an Express-like response (has status method)
-  if (typeof res.status === 'function') {
-    res.status(statusCode).json(data);
-  } else {
-    // Native Node.js response
-    res.writeHead(statusCode, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
-  }
-};
-
-const webhookHandler = async (req, res) => {
-  // Handle GET requests with a friendly message
+// Serverless function handler for Vercel
+export default async function handler(req, res) {
+  // Handle GET requests with a friendly response
   if (req.method === 'GET') {
-    const statusInfo = {
+    res.status(200).json({
       message: "🤖 Welcome Bot is running!",
       status: "active",
       description: "GitHub App webhook endpoint for welcoming contributors and celebrating community engagement",
-      timestamp: new Date().toISOString(),
-      version: "2.0.0",
-      
-      // Health check information
-      health: {
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'production',
-        webhookEvents: [
-          'issues.opened',
-          'pull_request.opened', 
-          'issues.assigned',
-          'repository.created',
-          'star.created',
-          'fork',
-          'watch.started',
-          'release.published',
-          'milestone.closed',
-          'member.added'
-        ]
-      },
-      
-      // Testing information
-      testing: {
-        endpoint: req.url,
-        method: 'POST',
-        headers: [
-          'x-github-event',
-          'x-github-delivery', 
-          'x-hub-signature-256'
-        ],
-        note: "This endpoint accepts GitHub webhook events to welcome contributors and celebrate community engagement"
-      }
-    };
-
-    sendJsonResponse(res, 200, statusInfo);
+      timestamp: new Date().toISOString()
+    });
     return;
   }
 
-  // Handle POST requests (webhooks)
-  if (req.method === 'POST') {
-    try {
-      // Get the raw body and signature for webhook verification
-      const signature = req.headers['x-hub-signature-256'] || req.headers['x-hub-signature'];
-      const eventType = req.headers['x-github-event'];
-      const deliveryId = req.headers['x-github-delivery'];
-      
-      if (!signature || !eventType) {
-        sendJsonResponse(res, 400, { 
-          error: 'Bad Request',
-          message: 'Missing required webhook headers'
-        });
-        return;
-      }
-
-      // For Vercel functions, we need to handle the body differently
-      let payload;
-      if (typeof req.body === 'string') {
-        payload = req.body;
-      } else if (req.body && typeof req.body === 'object') {
-        payload = JSON.stringify(req.body);
-      } else {
-        // If body is not available, try to read from request
-        payload = '';
-        req.on('data', chunk => {
-          payload += chunk.toString();
-        });
-        req.on('end', async () => {
-          await processWebhook(payload, signature, eventType, deliveryId, res);
-        });
-        return;
-      }
-      
-      await processWebhook(payload, signature, eventType, deliveryId, res);
-    } catch (error) {
-      console.error('Webhook processing error:', error);
-      sendJsonResponse(res, 500, { 
-        error: 'Internal server error',
-        message: 'Failed to process webhook'
-      });
-    }
-    return;
-  }
-
-  // Handle other HTTP methods
-  sendJsonResponse(res, 405, { 
-    error: 'Method not allowed',
-    message: 'Only GET and POST methods are supported'
-  });
-};
-
-// This exports the webhook handler for Vercel to use
-export default webhookHandler;
+  // Handle webhook POST requests
+  return handleWebhook(req, res);
+}
