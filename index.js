@@ -274,7 +274,7 @@ const processWebhook = async (payload, signature, eventType, deliveryId, res) =>
       payload: payload
     });
     
-    res.status(200).json({ 
+    sendJsonResponse(res, 200, { 
       message: 'Webhook processed successfully',
       event: eventType,
       deliveryId: deliveryId
@@ -282,12 +282,12 @@ const processWebhook = async (payload, signature, eventType, deliveryId, res) =>
   } catch (error) {
     console.error('Webhook verification/processing error:', error);
     if (error.message.includes('signature')) {
-      res.status(401).json({ 
+      sendJsonResponse(res, 401, { 
         error: 'Unauthorized',
         message: 'Invalid webhook signature'
       });
     } else {
-      res.status(500).json({ 
+      sendJsonResponse(res, 500, { 
         error: 'Internal server error',
         message: 'Failed to process webhook event'
       });
@@ -295,10 +295,22 @@ const processWebhook = async (payload, signature, eventType, deliveryId, res) =>
   }
 };
 
+// Utility function to send JSON responses (compatible with both Express and Node.js)
+const sendJsonResponse = (res, statusCode, data) => {
+  // Check if it's an Express-like response (has status method)
+  if (typeof res.status === 'function') {
+    res.status(statusCode).json(data);
+  } else {
+    // Native Node.js response
+    res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  }
+};
+
 const webhookHandler = async (req, res) => {
   // Handle GET requests with a friendly message
   if (req.method === 'GET') {
-    res.status(200).json({
+    sendJsonResponse(res, 200, {
       message: "Welcome Bot is running! 🤖",
       description: "This is a GitHub webhook endpoint. To use this bot, configure it as a webhook URL in your GitHub repository settings.",
       endpoints: {
@@ -329,7 +341,7 @@ const webhookHandler = async (req, res) => {
       const deliveryId = req.headers['x-github-delivery'];
       
       if (!signature || !eventType) {
-        res.status(400).json({ 
+        sendJsonResponse(res, 400, { 
           error: 'Bad Request',
           message: 'Missing required webhook headers'
         });
@@ -357,7 +369,7 @@ const webhookHandler = async (req, res) => {
       await processWebhook(payload, signature, eventType, deliveryId, res);
     } catch (error) {
       console.error('Webhook processing error:', error);
-      res.status(500).json({ 
+      sendJsonResponse(res, 500, { 
         error: 'Internal server error',
         message: 'Failed to process webhook'
       });
@@ -366,7 +378,7 @@ const webhookHandler = async (req, res) => {
   }
 
   // Handle other HTTP methods
-  res.status(405).json({ 
+  sendJsonResponse(res, 405, { 
     error: 'Method not allowed',
     message: 'Only GET and POST methods are supported'
   });
