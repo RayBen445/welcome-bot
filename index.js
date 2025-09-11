@@ -85,5 +85,51 @@ Welcome to the GitHub community! 🌟`,
   }
 });
 
+// Handle star events
+app.webhooks.on("star.created", async ({ octokit, payload }) => {
+  console.log(`Received a star event for ${payload.repository.name} from ${payload.sender.login}`);
+  
+  const starIssue = octokit.rest.issues.create({
+    owner: payload.repository.owner.login,
+    repo: payload.repository.name,
+    title: `Thank you for starring our repository! ⭐`,
+    body: `Hello @${payload.sender.login}! 👋
+
+Thank you so much for starring **${payload.repository.name}**! ⭐
+Your support means a lot to us and helps our project grow.
+We're thrilled to have you as part of our community! 🎉`,
+  });
+
+  try {
+    await starIssue;
+    console.log(`Successfully created thank you issue for star from ${payload.sender.login}`);
+  } catch (error) {
+    console.error("Failed to create star thank you issue:", error);
+  }
+});
+
+// Handle fork events
+app.webhooks.on("fork", async ({ octokit, payload }) => {
+  console.log(`Received a fork event for ${payload.repository.name} from ${payload.forkee.owner.login}`);
+  
+  const forkIssue = octokit.rest.issues.create({
+    owner: payload.repository.owner.login,
+    repo: payload.repository.name,
+    title: `Thanks for forking our repository! 🍴`,
+    body: `Hello @${payload.forkee.owner.login}! 👋
+
+Thank you for forking **${payload.repository.name}**! 🍴
+We're excited to see what you'll build with it. Feel free to contribute back if you make improvements!
+Welcome to our community of contributors! 🚀`,
+  });
+
+  try {
+    await forkIssue;
+    console.log(`Successfully created thank you issue for fork from ${payload.forkee.owner.login}`);
+  } catch (error) {
+    console.error("Failed to create fork thank you issue:", error);
+  }
+});
+
 // This exports the webhook handler for Vercel to use
 export default createNodeMiddleware(app);
