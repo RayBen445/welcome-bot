@@ -306,14 +306,157 @@ async function handleWebhook(req, res) {
 
 // Serverless function handler for Vercel
 export default async function handler(req, res) {
-  // Handle GET requests with a friendly response
+  // Handle GET requests with a friendly HTML status page
   if (req.method === 'GET') {
-    res.status(200).json({
-      message: "🤖 Welcome Bot is running!",
-      status: "active",
-      description: "GitHub App webhook endpoint for welcoming contributors and celebrating community engagement",
-      timestamp: new Date().toISOString()
-    });
+    const statusPageHTML = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Bot - Status</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .status-circle {
+            width: 20px;
+            height: 20px;
+            background: #00ff88;
+            border-radius: 50%;
+            margin-right: 10px;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
+            50% { box-shadow: 0 0 30px rgba(0, 255, 136, 0.8); }
+            100% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin: 0;
+            background: linear-gradient(45deg, #fff, #e0e0e0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .info-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #00ff88;
+        }
+        .info-section h3 {
+            margin-top: 0;
+            color: #00ff88;
+        }
+        .code-snippet {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            margin: 10px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .timestamp {
+            text-align: center;
+            margin-top: 30px;
+            opacity: 0.8;
+            font-size: 0.9em;
+        }
+        .emoji {
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span class="emoji">🤖</span> Welcome Bot</h1>
+            <div class="status-indicator">
+                <div class="status-circle"></div>
+                <strong>Bot is running and ready!</strong>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3><span class="emoji">👋</span> Welcome!</h3>
+            <p>The Welcome Bot is actively running and monitoring for GitHub webhook events. This friendly bot welcomes new contributors, celebrates community engagement, and helps foster a positive repository environment.</p>
+        </div>
+
+        <div class="info-section">
+            <h3><span class="emoji">📡</span> Webhook Endpoint</h3>
+            <p><strong>This endpoint is for GitHub webhook POSTs.</strong> If you see this page, your deployment is working correctly!</p>
+            <p>The bot automatically responds to various GitHub events including:</p>
+            <ul>
+                <li><span class="emoji">📝</span> Issues opened</li>
+                <li><span class="emoji">🔄</span> Pull requests opened</li>
+                <li><span class="emoji">⭐</span> Repository starred</li>
+                <li><span class="emoji">🍴</span> Repository forked</li>
+                <li><span class="emoji">👥</span> New team members added</li>
+                <li><span class="emoji">🚀</span> Releases published</li>
+                <li><span class="emoji">🏆</span> Milestones completed</li>
+            </ul>
+        </div>
+
+        <div class="info-section">
+            <h3><span class="emoji">🧪</span> Testing Instructions</h3>
+            <p><strong>To test the bot:</strong> Trigger a webhook event from GitHub by performing any of the supported actions in a repository where this bot is installed.</p>
+            <p>For example:</p>
+            <ul>
+                <li>Open a new issue</li>
+                <li>Submit a pull request</li>
+                <li>Star the repository</li>
+                <li>Fork the repository</li>
+            </ul>
+        </div>
+
+        <div class="info-section">
+            <h3><span class="emoji">ℹ️</span> Application Info</h3>
+            <p><strong>App Name:</strong> Professors Welcome Bot</p>
+            <p><strong>Version:</strong> 1.0.0</p>
+            <p><strong>Deployment Status:</strong> <span style="color: #00ff88;">✅ Active</span></p>
+            <p><strong>Platform:</strong> Vercel Serverless</p>
+            <p><strong>Runtime:</strong> Node.js (ES Modules)</p>
+        </div>
+
+        <div class="timestamp">
+            <span class="emoji">🕐</span> Last checked: ${new Date().toISOString()}
+        </div>
+    </div>
+</body>
+</html>`;
+
+    res.setHeader('Content-Type', 'text/html');
+    res.status(200).send(statusPageHTML);
     return;
   }
 
