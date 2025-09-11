@@ -2,8 +2,13 @@
 
 import { App, createNodeMiddleware } from "@octokit/app";
 
+// Validate environment variables
+if (!process.env.APP_ID || !process.env.PRIVATE_KEY || !process.env.WEBHOOK_SECRET) {
+  console.error("Missing required environment variables: APP_ID, PRIVATE_KEY, WEBHOOK_SECRET");
+}
+
 // Decode the Base64 private key
-const privateKey = Buffer.from(process.env.PRIVATE_KEY, "base64").toString("utf8");
+const privateKey = process.env.PRIVATE_KEY ? Buffer.from(process.env.PRIVATE_KEY, "base64").toString("utf8") : "";
 
 // Initialize the GitHub App
 const app = new App({
@@ -264,5 +269,54 @@ Let's keep up the momentum toward our next goals! 🚀`,
   }
 });
 
-// This exports the webhook handler for Vercel to use
-export default createNodeMiddleware(app);
+// Create a custom webhook handler that doesn't require OAuth
+async function handleWebhook(req, res) {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  try {
+    const signature = req.headers['x-hub-signature-256'];
+    const deliveryId = req.headers['x-github-delivery'];
+    const eventName = req.headers['x-github-event'];
+    
+    // Get raw body - Vercel provides it as body for webhooks
+    let payload;
+    if (typeof req.body === 'string') {
+      payload = req.body;
+    } else {
+      payload = JSON.stringify(req.body);
+    }
+    
+    // Let the app handle the webhook
+    await app.webhooks.verifyAndReceive({
+      id: deliveryId,
+      name: eventName,
+      signature: signature,
+      payload: payload
+    });
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+// Serverless function handler for Vercel
+export default async function handler(req, res) {
+  // Handle GET requests with a friendly response
+  if (req.method === 'GET') {
+    res.status(200).json({
+      message: "🤖 Welcome Bot is running!",
+      status: "active",
+      description: "GitHub App webhook endpoint for welcoming contributors and celebrating community engagement",
+      timestamp: new Date().toISOString()
+    });
+    return;
+  }
+
+  // Handle webhook POST requests
+  return handleWebhook(req, res);
+}
