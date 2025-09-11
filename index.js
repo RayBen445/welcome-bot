@@ -311,23 +311,10 @@ const webhookHandler = async (req, res) => {
   // Handle GET requests with a friendly message
   if (req.method === 'GET') {
     sendJsonResponse(res, 200, {
-      message: "Welcome Bot is running! 🤖",
-      description: "This is a GitHub webhook endpoint. To use this bot, configure it as a webhook URL in your GitHub repository settings.",
-      endpoints: {
-        webhook: "POST requests to this URL"
-      },
-      events: [
-        "issues.opened",
-        "pull_request.opened", 
-        "repository.created",
-        "star.created",
-        "fork",
-        "watch.started",
-        "release.published",
-        "issues.assigned",
-        "member.added",
-        "milestone.closed"
-      ]
+      message: "🤖 Welcome Bot is running!",
+      status: "active",
+      description: "GitHub App webhook endpoint for welcoming contributors and celebrating community engagement",
+      timestamp: new Date().toISOString()
     });
     return;
   }
