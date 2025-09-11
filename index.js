@@ -310,12 +310,45 @@ const sendJsonResponse = (res, statusCode, data) => {
 const webhookHandler = async (req, res) => {
   // Handle GET requests with a friendly message
   if (req.method === 'GET') {
-    sendJsonResponse(res, 200, {
+    const statusInfo = {
       message: "🤖 Welcome Bot is running!",
       status: "active",
       description: "GitHub App webhook endpoint for welcoming contributors and celebrating community engagement",
-      timestamp: new Date().toISOString()
-    });
+      timestamp: new Date().toISOString(),
+      version: "2.0.0",
+      
+      // Health check information
+      health: {
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'production',
+        webhookEvents: [
+          'issues.opened',
+          'pull_request.opened', 
+          'issues.assigned',
+          'repository.created',
+          'star.created',
+          'fork',
+          'watch.started',
+          'release.published',
+          'milestone.closed',
+          'member.added'
+        ]
+      },
+      
+      // Testing information
+      testing: {
+        endpoint: req.url,
+        method: 'POST',
+        headers: [
+          'x-github-event',
+          'x-github-delivery', 
+          'x-hub-signature-256'
+        ],
+        note: "This endpoint accepts GitHub webhook events to welcome contributors and celebrate community engagement"
+      }
+    };
+
+    sendJsonResponse(res, 200, statusInfo);
     return;
   }
 
